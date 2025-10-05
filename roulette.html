@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>生徒指名ルーレット</title>
+<style>
+  body { 
+    font-family: 'Segoe UI', sans-serif; 
+    text-align: center; 
+    margin-top: 50px; 
+    background: linear-gradient(135deg, #111, #333); 
+    color: white;
+  }
+  h1 {
+    color: #ffcc00;
+    text-shadow: 0 0 10px #ff6600;
+  }
+  label {
+    font-size: 1.2em;
+  }
+  input[type="number"] {
+    font-size: 1.2em;
+    width: 80px;
+    text-align: center;
+    margin-left: 10px;
+    border: 2px solid #ffcc00;
+    border-radius: 8px;
+    background: #222;
+    color: #ffcc00;
+    box-shadow: 0 0 8px #ff6600 inset;
+  }
+  #roulette {
+    font-size: 3em;
+    font-weight: bold;
+    margin: 20px auto;
+    padding: 20px;
+    border: 5px solid #ffcc00;
+    border-radius: 15px;
+    display: flex;
+    justify-content: space-around;
+    width: 80%;
+    max-width: 500px;
+    background: black;
+  }
+  .slot {
+    flex: 1;
+    margin: 0 5px;
+    padding: 10px;
+    background: #222;
+    border-radius: 10px;
+    transition: transform 0.3s, background 0.3s;
+  }
+  .active {
+    background: #ff3300;
+    color: #fff;
+    transform: scale(1.3);
+    text-shadow: 0 0 15px #ff6600;
+  }
+  .winner {
+    background: #00ccff;
+    color: #fff;
+    transform: scale(1.5);
+    text-shadow: 0 0 25px #00ffff, 0 0 50px #00cccc;
+  }
+  #result {
+    font-size: 2em;
+    margin: 30px;
+    color: #ffcc00;
+    text-shadow: 0 0 15px #ff6600;
+  }
+  button { 
+    font-size: 1.5em; 
+    padding: 15px 30px; 
+    margin: 20px; 
+    background: #ff6600; 
+    color: white; 
+    border: none; 
+    border-radius: 10px; 
+    cursor: pointer;
+    box-shadow: 0 0 15px #ff6600;
+  }
+  button:hover {
+    background: #ff3300;
+  }
+</style>
+</head>
+<body>
+<h1>🎰 生徒指名ルーレット 🎰</h1>
+<label>最大番号: 
+  <input type="number" id="maxNumber" value="40" min="1">
+</label>
+<br><br>
+<button onclick="startRoulette()">指名する</button>
+<div id="roulette"></div>
+<div id="result"></div>
+
+<script>
+let chosen = new Set();
+
+function startRoulette() {
+  const max = parseInt(document.getElementById("maxNumber").value);
+  if (chosen.size >= max) {
+    document.getElementById("result").innerHTML = "✨ 全員当たりました！ ✨";
+    return;
+  }
+
+  document.getElementById("result").innerHTML = "";
+
+  // 候補5人をランダムに選ぶ（まだ当たっていない中から）
+  let pool = [];
+  for (let i = 1; i <= max; i++) if (!chosen.has(i)) pool.push(i);
+  let candidates = [];
+  while (candidates.length < 5 && pool.length > 0) {
+    let idx = Math.floor(Math.random() * pool.length);
+    candidates.push(pool.splice(idx,1)[0]);
+  }
+
+  // 表示更新
+  let rouletteDiv = document.getElementById("roulette");
+  rouletteDiv.innerHTML = "";
+  candidates.forEach(n => {
+    let span = document.createElement("div");
+    span.className = "slot";
+    span.innerText = n;
+    rouletteDiv.appendChild(span);
+  });
+  let slots = document.querySelectorAll(".slot");
+
+  // ルーレット演出
+  let index = 0;
+  let delay = 100;
+  let steps = 20;
+
+  function spin(step) {
+    slots.forEach(s => s.classList.remove("active"));
+    slots[index].classList.add("active");
+    if (step < steps) {
+      index = (index + 1) % slots.length;
+      delay *= 1.1;
+      setTimeout(() => spin(step+1), delay);
+    } else {
+      // 最終的に止まった番号を当選に
+      slots.forEach(s => s.classList.remove("active"));
+      slots[index].classList.add("winner");
+      let winner = parseInt(slots[index].innerText);
+      chosen.add(winner);
+
+      // ランダム方向
+      const directions = ["👉 廊下側へ", "👈 窓側へ", "⬆️ 前へ", "⬇️ 後ろへ"];
+      const direction = directions[Math.floor(Math.random() * directions.length)];
+      document.getElementById("result").innerHTML = 
+        `番号 <b style="font-size:1.5em;">${winner}</b> さんから順に、<br>${direction}`;
+    }
+  }
+
+  spin(0);
+}
+</script>
+</body>
+</html>
