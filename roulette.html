@@ -7,7 +7,7 @@
   body { 
     font-family: 'Segoe UI', sans-serif; 
     text-align: center; 
-    margin-top: 50px; 
+    margin-top: 40px; 
     background: linear-gradient(135deg, #111, #333); 
     color: white;
   }
@@ -15,19 +15,17 @@
     color: #ffcc00;
     text-shadow: 0 0 10px #ff6600;
   }
-  label {
-    font-size: 1.2em;
-  }
-  input[type="number"] {
-    font-size: 1.2em;
-    width: 80px;
-    text-align: center;
-    margin-left: 10px;
-    border: 2px solid #ffcc00;
-    border-radius: 8px;
+  textarea {
+    width: 120px;
+    height: 300px;
     background: #222;
     color: #ffcc00;
+    border: 2px solid #ffcc00;
+    border-radius: 8px;
+    font-size: 1.2em;
+    padding: 5px;
     box-shadow: 0 0 8px #ff6600 inset;
+    resize: none;
   }
   #roulette {
     font-size: 3em;
@@ -69,15 +67,15 @@
     text-shadow: 0 0 15px #ff6600;
   }
   button { 
-    font-size: 1.5em; 
-    padding: 15px 30px; 
-    margin: 20px; 
+    font-size: 1.2em; 
+    padding: 10px 20px; 
+    margin: 10px; 
     background: #ff6600; 
     color: white; 
     border: none; 
     border-radius: 10px; 
     cursor: pointer;
-    box-shadow: 0 0 15px #ff6600;
+    box-shadow: 0 0 10px #ff6600;
   }
   button:hover {
     background: #ff3300;
@@ -86,33 +84,55 @@
 </head>
 <body>
 <h1>🎰 生徒指名ルーレット 🎰</h1>
-<label>最大番号: 
-  <input type="number" id="maxNumber" value="40" min="1">
-</label>
-<br><br>
+
+<div>
+  <label>番号リスト（縦に入力・貼り付けOK）</label><br>
+  <textarea id="numberList" placeholder="例：&#10;1&#10;2&#10;3&#10;..."></textarea><br>
+  <button onclick="clearList()">入力クリア</button>
+</div>
+
+<br>
+
 <button onclick="startRoulette()">指名する</button>
+<button onclick="resetRoulette()">リセット</button>
+
 <div id="roulette"></div>
 <div id="result"></div>
 
 <script>
 let chosen = new Set();
 
+function getNumberList() {
+  const text = document.getElementById("numberList").value.trim();
+  let numbers = [];
+
+  if (text === "") {
+    // デフォルトは1〜40
+    for (let i = 1; i <= 40; i++) numbers.push(i);
+  } else {
+    numbers = text.split(/\s+/).map(n => parseInt(n)).filter(n => !isNaN(n) && n <= 45);
+  }
+
+  return numbers;
+}
+
 function startRoulette() {
-  const max = parseInt(document.getElementById("maxNumber").value);
-  if (chosen.size >= max) {
+  const allNumbers = getNumberList();
+  const remaining = allNumbers.filter(n => !chosen.has(n));
+
+  if (remaining.length === 0) {
     document.getElementById("result").innerHTML = "✨ 全員当たりました！ ✨";
     return;
   }
 
   document.getElementById("result").innerHTML = "";
 
-  // 候補5人をランダムに選ぶ（まだ当たっていない中から）
-  let pool = [];
-  for (let i = 1; i <= max; i++) if (!chosen.has(i)) pool.push(i);
+  // 候補5人をランダムに選ぶ
+  let pool = [...remaining];
   let candidates = [];
   while (candidates.length < 5 && pool.length > 0) {
     let idx = Math.floor(Math.random() * pool.length);
-    candidates.push(pool.splice(idx,1)[0]);
+    candidates.push(pool.splice(idx, 1)[0]);
   }
 
   // 表示更新
@@ -130,6 +150,7 @@ function startRoulette() {
   let index = 0;
   let delay = 100;
   let steps = 20;
+  const finalIndex = Math.floor(Math.random() * slots.length);
 
   function spin(step) {
     slots.forEach(s => s.classList.remove("active"));
@@ -137,23 +158,35 @@ function startRoulette() {
     if (step < steps) {
       index = (index + 1) % slots.length;
       delay *= 1.1;
-      setTimeout(() => spin(step+1), delay);
+      setTimeout(() => spin(step + 1), delay);
     } else {
-      // 最終的に止まった番号を当選に
+      // 最終的にランダムな位置で止まる
       slots.forEach(s => s.classList.remove("active"));
-      slots[index].classList.add("winner");
-      let winner = parseInt(slots[index].innerText);
+      slots[finalIndex].classList.add("winner");
+      let winner = parseInt(slots[finalIndex].innerText);
       chosen.add(winner);
 
-      // ランダム方向
-      const directions = ["👉 廊下側へ", "👈 窓側へ", "⬆️ 前へ", "⬇️ 後ろへ"];
+      const directions = ["➡️ 右へ", "⬅️ 左へ", "⬆️ 前へ", "⬇️ 後ろへ"];
       const direction = directions[Math.floor(Math.random() * directions.length)];
+
       document.getElementById("result").innerHTML = 
         `番号 <b style="font-size:1.5em;">${winner}</b> さんから順に、<br>${direction}`;
     }
   }
 
   spin(0);
+}
+
+// 抽選履歴をリセット
+function resetRoulette() {
+  chosen.clear();
+  document.getElementById("result").innerHTML = "🔄 リセットしました";
+  document.getElementById("roulette").innerHTML = "";
+}
+
+// 入力欄をクリア
+function clearList() {
+  document.getElementById("numberList").value = "";
 }
 </script>
 </body>
