@@ -15,7 +15,7 @@
     color: #ffcc00;
     text-shadow: 0 0 10px #ff6600;
   }
-  textarea {
+  textarea, input[type=number] {
     width: 120px;
     height: 300px;
     background: #222;
@@ -26,6 +26,10 @@
     padding: 5px;
     box-shadow: 0 0 8px #ff6600 inset;
     resize: none;
+  }
+  input[type=number] {
+    height: auto;
+    width: 100px;
   }
   #roulette {
     font-size: 3em;
@@ -80,12 +84,27 @@
   button:hover {
     background: #ff3300;
   }
+  .mode-section {
+    margin-bottom: 20px;
+  }
 </style>
 </head>
 <body>
 <h1>🎰 生徒指名ルーレット 🎰</h1>
 
-<div>
+<div class="mode-section">
+  <label><input type="radio" name="mode" value="class" checked onchange="switchMode()"> クラス授業</label>
+  <label><input type="radio" name="mode" value="select" onchange="switchMode()"> 選択授業</label>
+</div>
+
+<!-- クラス授業 -->
+<div id="classMode">
+  <label>総人数を入力</label><br>
+  <input type="number" id="classTotal" min="1" max="100" placeholder="例：40"><br>
+</div>
+
+<!-- 選択授業 -->
+<div id="selectMode" style="display:none;">
   <label>番号リスト（縦に入力・貼り付けOK）</label><br>
   <textarea id="numberList" placeholder="例：&#10;1&#10;2&#10;3&#10;..."></textarea><br>
   <button onclick="clearList()">入力クリア</button>
@@ -101,19 +120,28 @@
 
 <script>
 let chosen = new Set();
+let currentMode = "class"; // デフォルトはクラス授業
+
+function switchMode() {
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  currentMode = mode;
+  document.getElementById("selectMode").style.display = (mode === "select") ? "block" : "none";
+  document.getElementById("classMode").style.display = (mode === "class") ? "block" : "none";
+  resetRoulette();
+}
 
 function getNumberList() {
-  const text = document.getElementById("numberList").value.trim();
-  let numbers = [];
-
-  if (text === "") {
-    // デフォルトは1〜40
-    for (let i = 1; i <= 40; i++) numbers.push(i);
+  if (currentMode === "select") {
+    const text = document.getElementById("numberList").value.trim();
+    if (text === "") {
+      return Array.from({length: 40}, (_, i) => i + 1);
+    }
+    return text.split(/\s+/).map(n => parseInt(n)).filter(n => !isNaN(n));
   } else {
-    numbers = text.split(/\s+/).map(n => parseInt(n)).filter(n => !isNaN(n) && n <= 45);
+    let total = parseInt(document.getElementById("classTotal").value);
+    if (isNaN(total) || total <= 0) total = 40;
+    return Array.from({length: total}, (_, i) => i + 1);
   }
-
-  return numbers;
 }
 
 function startRoulette() {
@@ -127,7 +155,6 @@ function startRoulette() {
 
   document.getElementById("result").innerHTML = "";
 
-  // 候補5人をランダムに選ぶ
   let pool = [...remaining];
   let candidates = [];
   while (candidates.length < 5 && pool.length > 0) {
@@ -135,7 +162,6 @@ function startRoulette() {
     candidates.push(pool.splice(idx, 1)[0]);
   }
 
-  // 表示更新
   let rouletteDiv = document.getElementById("roulette");
   rouletteDiv.innerHTML = "";
   candidates.forEach(n => {
@@ -146,7 +172,6 @@ function startRoulette() {
   });
   let slots = document.querySelectorAll(".slot");
 
-  // ルーレット演出
   let index = 0;
   let delay = 100;
   let steps = 20;
@@ -160,7 +185,6 @@ function startRoulette() {
       delay *= 1.1;
       setTimeout(() => spin(step + 1), delay);
     } else {
-      // 最終的にランダムな位置で止まる
       slots.forEach(s => s.classList.remove("active"));
       slots[finalIndex].classList.add("winner");
       let winner = parseInt(slots[finalIndex].innerText);
@@ -177,14 +201,12 @@ function startRoulette() {
   spin(0);
 }
 
-// 抽選履歴をリセット
 function resetRoulette() {
   chosen.clear();
   document.getElementById("result").innerHTML = "🔄 リセットしました";
   document.getElementById("roulette").innerHTML = "";
 }
 
-// 入力欄をクリア
 function clearList() {
   document.getElementById("numberList").value = "";
 }
